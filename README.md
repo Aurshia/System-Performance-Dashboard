@@ -1,0 +1,1 @@
+This is a system performance dashboard in which I am getting the the real real time changes of CPU , MEMORY , DISK , NETWORK  and BATTERY , I am getting these with the help of python library PSUTIL , and then I am converting these numbers into bytes andd it is updating every second.
