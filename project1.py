@@ -1,6 +1,22 @@
 import psutil
-import os
-import time
+import streamlit as st
+from streamlit_autorefresh import st_autorefresh
+
+
+st.set_page_config(page_title="System Performance Dashboard", layout="wide")
+
+with open('style.css') as f:
+    st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
+st.markdown("## 💻 System Performance Dashboard")
+
+# 🔁 Auto refresh every 1 second
+st_autorefresh(interval=1000, key="refresh")
+
+st.sidebar.header('Dashboard ')
+
+
+# ---------------- FUNCTIONS ---------------- #
 
 def bytes_to_readable(num):
     for unit in ["B", "KB", "MB", "GB", "TB"]:
@@ -8,66 +24,55 @@ def bytes_to_readable(num):
             return f"{num:.2f} {unit}"
         num /= 1024
 
-def Get_CPU_INFO():
+def cpu_info():
     freq = psutil.cpu_freq()
-    return {
-        "CPU Usage (%)": psutil.cpu_percent(interval=0.5),
-        "CPU Cores": psutil.cpu_count(logical=True),
-        "CPU Frequency": f"{freq.current:.2f} MHz"
-    }
+    return psutil.cpu_percent(), psutil.cpu_count(), freq.current
 
-def Get_MEMORY_INFO():
+def memory_info():
     mem = psutil.virtual_memory()
-    swap = psutil.swap_memory()
-    return {
-        "Total Memory": bytes_to_readable(mem.total),
-        "Used Memory": bytes_to_readable(mem.used),
-        "Free Memory": bytes_to_readable(mem.available),
-        "Swap Total": bytes_to_readable(swap.total),
-        "Swap Used": bytes_to_readable(swap.used),
-    }
+    return mem.percent, bytes_to_readable(mem.used), bytes_to_readable(mem.total)
 
-def Get_DISK_INFO():
-    usage = psutil.disk_usage("C:\\")
-    return {
-        "Total Disk": bytes_to_readable(usage.total),
-        "Used Disk": bytes_to_readable(usage.used),
-        "Free Disk": bytes_to_readable(usage.free),
-    }
+def disk_info():
+    disk = psutil.disk_usage("C:\\")
+    return disk.percent, bytes_to_readable(disk.used), bytes_to_readable(disk.total)
 
-def Get_NETWORK_INFO():
+def network_info():
     net = psutil.net_io_counters()
-    return {
-        "Bytes Sent": bytes_to_readable(net.bytes_sent),
-        "Bytes Received": bytes_to_readable(net.bytes_recv),
-    }
+    return bytes_to_readable(net.bytes_sent), bytes_to_readable(net.bytes_recv)
 
-def Get_BATTERY_INFO():
+def battery_info():
     battery = psutil.sensors_battery()
-    if battery is None:
-        return {"Battery": "No battery detected"}
+    if battery:
+        return battery.percent, battery.power_plugged
+    return None, None
 
-    return {
-        "Battery Percentage": f"{battery.percent}%",
-        "Plugged In": "Yes" if battery.power_plugged else "No",
-    }
+# ---------------- LAYOUT ---------------- #
 
-def print_dash(title, info):
-    print(f"\n===== {title} =====")
-    for key, value in info.items():
-        print(f"{key}: {value}")
+col1, col2, col3 = st.columns(3)
 
-while True:
-    os.system("cls")
+cpu_usage, cores, freq = cpu_info()
+col1.metric("CPU Usage", f"{cpu_usage} %")
+col1.caption(f"Cores: {cores} | {freq:.0f} MHz")
 
-    print("======= SYSTEM PERFORMANCE DASHBOARD =======")
+mem_percent, mem_used, mem_total = memory_info()
+col2.metric("RAM Usage", f"{mem_percent} %")
+col2.caption(f"{mem_used} / {mem_total}")
 
-    print_dash("CPU INFO", Get_CPU_INFO())
-    print_dash("MEMORY INFO", Get_MEMORY_INFO())
-    print_dash("DISK INFO", Get_DISK_INFO())
-    print_dash("NETWORK INFO", Get_NETWORK_INFO())
-    print_dash("BATTERY INFO", Get_BATTERY_INFO())
+disk_percent, disk_used, disk_total = disk_info()
+col3.metric("Disk Usage", f"{disk_percent} %")
+col3.caption(f"{disk_used} / {disk_total}")
 
-    print("\nRefreshing every 1 second... (Press Ctrl + C to stop)")
+st.divider()
 
-    time.sleep(1)
+col4, col5 = st.columns(2)
+
+sent, recv = network_info()
+col4.metric("Network Sent", sent)
+col4.metric("Network Received", recv)
+
+battery_percent, plugged = battery_info()
+if battery_percent is not None:
+    col5.metric("Battery", f"{battery_percent} %")
+    col5.caption("Charging ⚡" if plugged else "On Battery 🔋")
+else:
+    col5.warning("No battery detected")
