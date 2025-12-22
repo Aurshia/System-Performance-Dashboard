@@ -23,7 +23,10 @@ Streamlit is showing:
 <br>
 2. it shows matrics.
 <br>
-3. it shows captions.<br>
-- we can run this by simply writing **streamlit run project name ** in the terminal.<br>
-# OUTPUT SCREENSHOT IS AS FOLLOWS:<br>
+3. it shows captions.
+<br>
+- We can run this by simply writing **streamlit run project name** in the terminal.
+<br>
+# OUTPUT SCREENSHOT IS AS FOLLOWS:
+<br>
 ![Dashboard](output.png)
