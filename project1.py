@@ -1,3 +1,4 @@
+import os
 import psutil
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
@@ -14,6 +15,8 @@ st.markdown("## 💻 System Performance Dashboard")
 st_autorefresh(interval=1000, key="refresh")
 
 st.sidebar.header('Dashboard ')
+
+HISTORY_LIMIT = 60 # Store last 60 seconds of data (assuming 1 update per second)
 
 
 # ---------------- FUNCTIONS ---------------- #
@@ -33,7 +36,8 @@ def memory_info():
     return mem.percent, bytes_to_readable(mem.used), bytes_to_readable(mem.total)
 
 def disk_info():
-    disk = psutil.disk_usage("C:\\")
+    path = "C:\\" if os.name == "nt" else "/"
+    disk = psutil.disk_usage(path)
     return disk.percent, bytes_to_readable(disk.used), bytes_to_readable(disk.total)
 
 def network_info():
@@ -61,6 +65,28 @@ col2.caption(f"{mem_used} / {mem_total}")
 disk_percent, disk_used, disk_total = disk_info()
 col3.metric("Disk Usage", f"{disk_percent} %")
 col3.caption(f"{disk_used} / {disk_total}")
+
+
+if "history" not in st.session_state:
+    st.session_state.history = {"cpu": [], "ram": [], "disk": []}
+
+history = st.session_state.history
+history["cpu"].append(cpu_usage)
+history["ram"].append(mem_percent)
+history["disk"].append(disk_percent)
+
+for key in history:
+    if len(history[key]) > HISTORY_LIMIT:
+        history[key] = history[key][-HISTORY_LIMIT:]
+
+st.subheader("Usage Trends (last 60s)")
+chart_col1, chart_col2, chart_col3 = st.columns(3)
+chart_col1.line_chart(history["cpu"], height=200)
+chart_col1.caption("CPU %")
+chart_col2.line_chart(history["ram"], height=200)
+chart_col2.caption("RAM %")
+chart_col3.line_chart(history["disk"], height=200)
+chart_col3.caption("Disk %")
 
 st.divider()
 
